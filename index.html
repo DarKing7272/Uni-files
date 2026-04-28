@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>منصة التعلم التفاعلية | تحويل تلقائي لروابط Drive</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Cairo', sans-serif;
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            min-height: 100vh;
+            color: #fff;
+        }
+        .bg-animation { position: fixed; width: 100%; height: 100%; top: 0; left: 0; z-index: -1; overflow: hidden; }
+        .bg-animation span { position: absolute; width: 20px; height: 20px; background: rgba(255,255,255,0.05); border-radius: 50%; animation: float 20s infinite linear; }
+        @keyframes float { 0% { transform: translateY(100vh) rotate(0deg); opacity: 0; } 10% { opacity: 1; } 90% { opacity: 1; } 100% { transform: translateY(-100vh) rotate(360deg); opacity: 0; } }
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; position: relative; z-index: 1; }
+        .header { text-align: center; padding: 50px 20px; background: rgba(255,255,255,0.05); backdrop-filter: blur(10px); border-radius: 30px; margin-bottom: 40px; border: 1px solid rgba(255,255,255,0.1); animation: slideDown 0.8s ease; }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-50px); } to { opacity: 1; transform: translateY(0); } }
+        .header h1 { font-size: 3em; background: linear-gradient(135deg, #fff, #a8c0ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 15px; }
+        .header p { color: rgba(255,255,255,0.7); font-size: 1.1em; }
+        .stats { display: flex; justify-content: center; gap: 30px; margin-top: 30px; flex-wrap: wrap; }
+        .stat-card { background: rgba(255,255,255,0.1); padding: 10px 25px; border-radius: 50px; backdrop-filter: blur(5px); }
+        .stat-number { font-size: 1.8em; font-weight: bold; color: #ffd700; }
+        .subjects-section { margin-bottom: 50px; }
+        .section-badge { display: inline-block; background: linear-gradient(135deg, #ffd700, #ff8c00); padding: 8px 20px; border-radius: 50px; margin-bottom: 25px; font-weight: 600; }
+        .subjects-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 25px; }
+        .subject-card { background: rgba(255,255,255,0.08); backdrop-filter: blur(10px); border-radius: 20px; padding: 25px; cursor: pointer; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); border: 1px solid rgba(255,255,255,0.1); position: relative; overflow: hidden; }
+        .subject-card::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0)); transform: translateX(-100%); transition: transform 0.6s; }
+        .subject-card:hover::before { transform: translateX(0); }
+        .subject-card:hover { transform: translateY(-10px) scale(1.02); background: rgba(255,255,255,0.15); border-color: rgba(255,215,0,0.5); box-shadow: 0 20px 40px rgba(0,0,0,0.3); }
+        .subject-card.active { background: linear-gradient(135deg, rgba(255,215,0,0.2), rgba(255,140,0,0.2)); border-color: #ffd700; box-shadow: 0 0 30px rgba(255,215,0,0.3); }
+        .subject-icon { font-size: 2.5em; margin-bottom: 15px; }
+        .subject-name { font-size: 1.2em; font-weight: 700; margin-bottom: 10px; }
+        .subject-count { font-size: 0.85em; color: rgba(255,255,255,0.6); display: flex; align-items: center; gap: 5px; }
+        .files-main { background: rgba(255,255,255,0.05); backdrop-filter: blur(10px); border-radius: 25px; padding: 30px; border: 1px solid rgba(255,255,255,0.1); animation: fadeInUp 0.6s ease; }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+        .files-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 2px solid rgba(255,255,255,0.1); }
+        .files-title { font-size: 1.5em; font-weight: 700; }
+        .files-title i { color: #ffd700; margin-left: 10px; }
+        .refresh-btn { background: rgba(255,255,255,0.1); border: none; color: white; padding: 10px 20px; border-radius: 50px; cursor: pointer; transition: all 0.3s; font-family: 'Cairo', sans-serif; }
+        .refresh-btn:hover { background: rgba(255,215,0,0.3); transform: rotate(180deg); }
+        .files-list { display: flex; flex-direction: column; gap: 15px; max-height: 500px; overflow-y: auto; }
+        .files-list::-webkit-scrollbar { width: 8px; }
+        .files-list::-webkit-scrollbar-track { background: rgba(255,255,255,0.1); border-radius: 10px; }
+        .files-list::-webkit-scrollbar-thumb { background: #ffd700; border-radius: 10px; }
+        .file-item { background: rgba(255,255,255,0.05); border-radius: 15px; padding: 18px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; transition: all 0.3s; border: 1px solid transparent; }
+        .file-item:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,215,0,0.3); transform: translateX(5px); }
+        .file-info { flex: 1; }
+        .file-name { font-size: 1.05em; font-weight: 500; margin-bottom: 8px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .file-name i { color: #ffd700; font-size: 1.2em; }
+        .file-meta { display: flex; gap: 15px; flex-wrap: wrap; font-size: 0.8em; color: rgba(255,255,255,0.6); }
+        .file-meta span { display: inline-flex; align-items: center; gap: 5px; }
+        .download-btn { background: linear-gradient(135deg, #ffd700, #ff8c00); color: #1a1a2e; padding: 10px 25px; border-radius: 50px; text-decoration: none; font-weight: 600; transition: all 0.3s; display: inline-flex; align-items: center; gap: 8px; }
+        .download-btn:hover { transform: scale(1.05); box-shadow: 0 5px 20px rgba(255,215,0,0.4); }
+        .guide-box { background: rgba(255,215,0,0.1); border-right: 4px solid #ffd700; padding: 15px; border-radius: 10px; margin-bottom: 20px; font-size: 0.9em; }
+        .guide-box h4 { color: #ffd700; margin-bottom: 10px; }
+        .guide-box code { background: rgba(0,0,0,0.5); padding: 3px 8px; border-radius: 5px; font-family: monospace; }
+        .guide-box .success { color: #4CAF50; }
+        .loading-state, .empty-state { text-align: center; padding: 60px; }
+        .loading-state i, .empty-state i { font-size: 3em; color: #ffd700; margin-bottom: 15px; }
+        .footer { text-align: center; padding: 30px; margin-top: 40px; color: rgba(255,255,255,0.5); font-size: 0.9em; }
+        .creator { margin-top: 10px; color: #ffd700; font-weight: 500; }
+        .creator i { margin: 0 5px; }
+        .hashtag-badge { background: rgba(0,0,0,0.3); padding: 2px 8px; border-radius: 20px; font-size: 0.8em; }
+        .auto-convert { background: rgba(76,175,80,0.2); border: 1px solid #4CAF50; border-radius: 20px; padding: 5px 10px; font-size: 0.7em; display: inline-flex; align-items: center; gap: 5px; margin-right: 10px; }
+        @media (max-width: 768px) { .header h1 { font-size: 1.8em; } .subjects-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; } .subject-card { padding: 18px; } .subject-name { font-size: 1em; } .files-main { padding: 20px; } .file-item { flex-direction: column; text-align: center; } .download-btn { width: 100%; justify-content: center; } .file-meta { justify-content: center; } }
+    </style>
+</head>
+<body>
+
+<div class="bg-animation" id="bgAnimation"></div>
+
+<div class="container">
+    <div class="header">
+        <h1><i class="fas fa-graduation-cap"></i> منصة التعلم التفاعلية</h1>
+        <p>جميع الملفات مستضافة على Google Drive | تحويل تلقائي لروابط التحميل</p>
+        <div class="stats">
+            <div class="stat-card"><span class="stat-number" id="totalFiles">0</span> <i class="fas fa-file"></i> ملف</div>
+            <div class="stat-card"><span class="stat-number" id="lastUpdate">--</span> <i class="fas fa-clock"></i> آخر تحديث</div>
+        </div>
+    </div>
+
+    <!-- دليل سريع -->
+    <div class="guide-box">
+        <h4><i class="fas fa-magic"></i> خاصية التحويل التلقائي للروابط</h4>
+        <p>يمكنك وضع <strong>أي نوع</strong> من روابط Google Drive في جدول البيانات، وسيقوم الموقع بتحويلها تلقائياً إلى رابط تحميل مباشر!</p>
+        <p style="margin-top: 8px;">
+            ✅ <code>https://drive.google.com/file/d/FILE_ID/view</code><br>
+            ✅ <code>https://drive.google.com/open?id=FILE_ID</code><br>
+            ✅ <code>https://drive.google.com/uc?id=FILE_ID</code><br>
+            ✅ <code>https://drive.google.com/uc?export=download&id=FILE_ID</code>
+        </p>
+        <p class="success"><i class="fas fa-check-circle"></i> كل الروابط أعلاه ستعمل تلقائياً!</p>
+    </div>
+
+    <div class="subjects-section">
+        <div class="section-badge"><i class="fas fa-book"></i> المواد الدراسية</div>
+        <div class="subjects-grid" id="subjectsGrid"></div>
+    </div>
+
+    <div class="files-main">
+        <div class="files-header">
+            <div class="files-title"><i class="fas fa-file-alt"></i> <span id="selectedSubjectName">جميع الملفات</span></div>
+            <button class="refresh-btn" onclick="refreshData()"><i class="fas fa-sync-alt"></i> تحديث</button>
+        </div>
+        <div class="files-list" id="filesList">
+            <div class="loading-state"><i class="fas fa-spinner fa-spin"></i><br>جاري تحميل الملفات...</div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <i class="fab fa-google-drive"></i> مستضاف على Google Drive | تحويل تلقائي لجميع الروابط
+        <div class="creator">
+            <i class="fas fa-code"></i> من إعداد <strong>ميمون كاظم</strong> <i class="fas fa-heart" style="color: #ff6b6b;"></i>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ========================
+    // إعدادات Google Sheets
+    // ========================
+    const SHEET_ID = '10WQY9mC_YPq0mwaXL5kZV6-s7_iTikwXw8UKkppCxu4';
+    
+    // المواد مع الهاشتاجات الخاصة بها
+    const subjects = [
+        { id: 'all', name: '📚 الجميع', icon: 'fa-folder-open', hashtag: null },
+        { id: 'reading', name: '📖 Reading', icon: 'fa-book-open', hashtag: '#Reading' },
+        { id: 'speaking', name: '🎙️ Speaking', icon: 'fa-microphone-alt', hashtag: '#Speaking' },
+        { id: 'writing', name: '✍️ Writing', icon: 'fa-pen-fancy', hashtag: '#Writing' },
+        { id: 'grammar', name: '📐 Grammar', icon: 'fa-language', hashtag: '#Grammar' },
+        { id: 'phonetics', name: '🔊 Phonetics', icon: 'fa-head-side-vr', hashtag: '#Phonetics' },
+        { id: 'psychology', name: '🧠 علم النفس', icon: 'fa-brain', hashtag: '#علم_النفس' },
+        { id: 'humanrights', name: '⚖️ حقوق الانسان', icon: 'fa-gavel', hashtag: '#حقوق_الانسان' },
+        { id: 'arabic', name: 'اللغة العربية', icon: 'fa-mosque', hashtag: '#عربي' },
+        { id: 'education', name: '🏫 أسس التربية', icon: 'fa-chalkboard-user', hashtag: '#أسس_التربية' },
+        { id: 'computers', name: '💻 حاسبات', icon: 'fa-laptop-code', hashtag: '#حاسبات' }
+    ];
+
+    let allFilesData = [];
+    let currentSubject = 'all';
+
+    // ========================
+    // الدالة السحرية: تحويل أي رابط Google Drive إلى رابط تحميل مباشر
+    // ========================
+    function convertToDirectDriveLink(url) {
+        if (!url || typeof url !== 'string') return '#';
+        
+        // إذا كان الرابط فارغاً أو ليس من Google Drive
+        if (!url.includes('drive.google.com') && !url.includes('googleusercontent.com')) {
+            return url;
+        }
+        
+        // إذا كان بالفعل رابط تحميل مباشر
+        if (url.includes('uc?export=download') || url.includes('uc?export=view')) {
+            return url;
+        }
+        
+        // محاولة استخراج معرف الملف بأنماط مختلفة
+        
+        // النمط 1: /file/d/FILE_ID/view
+        let match = url.match(/\/d\/([^\/]+)/);
+        if (match) {
+            return `https://drive.google.com/uc?export=download&id=${match[1]}`;
+        }
+        
+        // النمط 2: open?id=FILE_ID
+        match = url.match(/id=([^&]+)/);
+        if (match) {
+            return `https://drive.google.com/uc?export=download&id=${match[1]}`;
+        }
+        
+        // النمط 3: uc?id=FILE_ID
+        match = url.match(/uc\?id=([^&]+)/);
+        if (match) {
+            return `https://drive.google.com/uc?export=download&id=${match[1]}`;
+        }
+        
+        // النمط 4: file/d/FILE_ID
+        match = url.match(/file\/d\/([^\/]+)/);
+        if (match) {
+            return `https://drive.google.com/uc?export=download&id=${match[1]}`;
+        }
+        
+        // النمط 5: /folders/ (للمجلدات - لا يمكن تحميلها مباشرة)
+        if (url.includes('/folders/')) {
+            console.warn('هذا رابط مجلد وليس ملف:', url);
+            return url;
+        }
+        
+        // إذا لم نتمكن من استخراج المعرف، نرجع الرابط الأصلي
+        return url;
+    }
+
+    // اختبار الدالة (يمكنك تجربتها في console)
+    console.log("اختبار تحويل الروابط:");
+    console.log(convertToDirectDriveLink("https://drive.google.com/file/d/1ABC123/view"));
+    console.log(convertToDirectDriveLink("https://drive.google.com/open?id=1ABC123"));
+    console.log(convertToDirectDriveLink("https://drive.google.com/uc?id=1ABC123"));
+
+    function createBackgroundAnimation() {
+        const container = document.getElementById('bgAnimation');
+        for (let i = 0; i < 50; i++) {
+            const span = document.createElement('span');
+            const size = Math.random() * 30 + 10;
+            span.style.width = size + 'px';
+            span.style.height = size + 'px';
+            span.style.left = Math.random() * 100 + '%';
+            span.style.animationDelay = Math.random() * 20 + 's';
+            span.style.animationDuration = Math.random() * 15 + 10 + 's';
+            container.appendChild(span);
+        }
+    }
+
+    function displaySubjects() {
+        const container = document.getElementById('subjectsGrid');
+        container.innerHTML = subjects.map(subject => `
+            <div class="subject-card" onclick="selectSubject('${subject.id}')" data-subject="${subject.id}">
+                <div class="subject-icon"><i class="fas ${subject.icon}"></i></div>
+                <div class="subject-name">${subject.name}</div>
+                <div class="subject-count">
+                    <i class="fas fa-file"></i>
+                    <span id="count-${subject.id}">0</span> ملف
+                </div>
+            </div>
+        `).join('');
+    }
+
+    async function fetchFilesFromSheets() {
+        try {
+            const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=0`;
+            const response = await fetch(url);
+            const text = await response.text();
+            const jsonString = text.substring(47, text.length - 2);
+            const data = JSON.parse(jsonString);
+            const rows = data.table.rows;
+            const files = [];
+
+            for (let i = 1; i < rows.length; i++) {
+                const row = rows[i].c;
+                if (!row || row.length < 4) continue;
+
+                const fileName = row[1]?.v || 'ملف بدون اسم';
+                let originalUrl = row[2]?.v || '#';
+                const hashtag = row[3]?.v || '';
+                const date = row[4]?.v || new Date().toISOString();
+
+                // ========================================
+                // هنا السحر! تحويل الرابط تلقائياً
+                // ========================================
+                let directUrl = convertToDirectDriveLink(originalUrl);
+                
+                // إذا فشل التحويل، نستخدم الرابط الأصلي
+                if (directUrl === '#') {
+                    directUrl = originalUrl;
+                }
+
+                // تحديد المادة من الهاشتاج
+                let subjectId = 'general';
+                for (let sub of subjects) {
+                    if (sub.hashtag && hashtag && hashtag === sub.hashtag) {
+                        subjectId = sub.id;
+                        break;
+                    }
+                }
+
+                if (directUrl !== '#') {
+                    files.push({
+                        id: i,
+                        name: fileName,
+                        url: directUrl,
+                        originalUrl: originalUrl, // للحفظ فقط
+                        subject: subjectId,
+                        hashtag: hashtag || 'بدون تصنيف',
+                        date: date
+                    });
+                }
+            }
+
+            return files.reverse();
+        } catch (error) {
+            console.error('خطأ في جلب الملفات:', error);
+            return [];
+        }
+    }
+
+    function updateSubjectsCount(files) {
+        subjects.forEach(subject => {
+            let count = (subject.id === 'all') ? files.length : files.filter(f => f.subject === subject.id).length;
+            const countElement = document.getElementById(`count-${subject.id}`);
+            if (countElement) countElement.textContent = count;
+        });
+        document.getElementById('totalFiles').textContent = files.length;
+        document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString('ar-EG');
+    }
+
+    async function selectSubject(subjectId) {
+        currentSubject = subjectId;
+        
+        document.querySelectorAll('.subject-card').forEach(card => {
+            card.classList.remove('active');
+            if (card.getAttribute('data-subject') === subjectId) {
+                card.classList.add('active');
+            }
+        });
+        
+        const selectedSubject = subjects.find(s => s.id === subjectId);
+        document.getElementById('selectedSubjectName').innerHTML = 
+            subjectId === 'all' ? 'جميع الملفات' : selectedSubject?.name || 'الملفات';
+        
+        const filesContainer = document.getElementById('filesList');
+        filesContainer.innerHTML = '<div class="loading-state"><i class="fas fa-spinner fa-spin"></i><br>جاري التحميل...</div>';
+        
+        if (allFilesData.length === 0) {
+            allFilesData = await fetchFilesFromSheets();
+            updateSubjectsCount(allFilesData);
+        }
+        
+        let filteredFiles = subjectId === 'all' ? allFilesData : allFilesData.filter(file => file.subject === subjectId);
+        
+        if (filteredFiles.length === 0) {
+            filesContainer.innerHTML = '<div class="empty-state"><i class="fas fa-inbox"></i><br>📭 لا توجد ملفات في هذه المادة حتى الآن</div>';
+            return;
+        }
+        
+        filesContainer.innerHTML = filteredFiles.map(file => `
+            <div class="file-item">
+                <div class="file-info">
+                    <div class="file-name">
+                        <i class="fas ${getFileIcon(file.name)}"></i>
+                        ${file.name}
+                        <span class="hashtag-badge">${file.hashtag}</span>
+                        <span class="auto-convert"><i class="fas fa-magic"></i> تحويل تلقائي</span>
+                    </div>
+                    <div class="file-meta">
+                        <span><i class="fas fa-calendar-alt"></i> ${formatDate(file.date)}</span>
+                        <span><i class="fas fa-tag"></i> ${file.hashtag}</span>
+                        <span><i class="fab fa-google-drive"></i> Google Drive</span>
+                    </div>
+                </div>
+                <a href="${file.url}" class="download-btn" target="_blank" rel="noopener noreferrer" onclick="verifyLink(this.href)">
+                    <i class="fas fa-download"></i> تحميل
+                </a>
+            </div>
+        `).join('');
+    }
+
+    // دالة للتحقق من الرابط قبل التحميل (اختياري)
+    function verifyLink(url) {
+        if (url && url !== '#') {
+            console.log('جاري التحميل من:', url);
+        }
+        return true;
+    }
+
+    async function refreshData() {
+        allFilesData = await fetchFilesFromSheets();
+        updateSubjectsCount(allFilesData);
+        selectSubject(currentSubject);
+        
+        const refreshBtn = document.querySelector('.refresh-btn');
+        if (refreshBtn) {
+            refreshBtn.style.transform = 'rotate(180deg)';
+            setTimeout(() => { if(refreshBtn) refreshBtn.style.transform = ''; }, 500);
+        }
+    }
+
+    function formatDate(dateString) {
+        if (!dateString) return 'تاريخ غير محدد';
+        try {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('ar-EG', { year: 'numeric', month: 'short', day: 'numeric' });
+        } catch {
+            return dateString.split('T')[0];
+        }
+    }
+
+    function getFileIcon(fileName) {
+        if (!fileName) return 'fa-file';
+        const ext = fileName.split('.').pop().toLowerCase();
+        const icons = {
+            pdf: 'fa-file-pdf',
+            doc: 'fa-file-word', docx: 'fa-file-word',
+            xls: 'fa-file-excel', xlsx: 'fa-file-excel',
+            ppt: 'fa-file-powerpoint', pptx: 'fa-file-powerpoint',
+            jpg: 'fa-file-image', jpeg: 'fa-file-image', png: 'fa-file-image', gif: 'fa-file-image',
+            mp3: 'fa-file-audio', wav: 'fa-file-audio',
+            mp4: 'fa-file-video', avi: 'fa-file-video',
+            zip: 'fa-file-archive', rar: 'fa-file-archive'
+        };
+        return icons[ext] || 'fa-file';
+    }
+
+    // بدء تشغيل الموقع
+    createBackgroundAnimation();
+    displaySubjects();
+    refreshData();
+    setInterval(refreshData, 30000);
+</script>
+</body>
+</html>
